@@ -1,0 +1,20 @@
+# DayBySay Git Ignore
+
+# Sensitive Secrets & Keys
+Secrets.xcconfig
+*.env
+
+# Xcode / Apple Build Artifacts
+build/
+DerivedData/
+*.xcuserstate
+project.xcworkspace/xcuserdata/
+*.xcuserdatad/
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
