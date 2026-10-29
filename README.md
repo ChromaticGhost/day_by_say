@@ -40,7 +40,7 @@ DayBySay is an accessible, senior-friendly iOS application built for immigrant f
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/<your-username>/day_by_say.git
+   git clone https://github.com/ChromaticGhost/day_by_say.git
    cd day_by_say
    ```
 
