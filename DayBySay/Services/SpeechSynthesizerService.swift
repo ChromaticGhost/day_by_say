@@ -19,6 +19,11 @@ public final class SpeechSynthesizerService: NSObject, ObservableObject, AVSpeec
         speak(text: text, languageCode: "en-US", rate: rate)
     }
     
+    /// Speaks English text at an ultra-slow pace for learners analyzing syllables.
+    public func speakSlowly(_ text: String) {
+        speak(text: text, languageCode: "en-US", rate: 0.28)
+    }
+    
     /// Speaks text in the specified target language locale.
     public func speak(text: String, languageCode: String, rate: Float = 0.46) {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }

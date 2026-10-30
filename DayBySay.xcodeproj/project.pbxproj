@@ -18,6 +18,12 @@
 		30000000000000000000000A /* SpeechSynthesizerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000A /* SpeechSynthesizerService.swift */; };
 		30000000000000000000000B /* VocabularyCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000B /* VocabularyCardView.swift */; };
 		30000000000000000000000C /* LiveListenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000C /* LiveListenView.swift */; };
+		30000000000000000000000E /* ChatModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000E /* ChatModels.swift */; };
+		30000000000000000000000F /* GeminiChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000F /* GeminiChatService.swift */; };
+		300000000000000000000010 /* WordInspectionPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000010 /* WordInspectionPopup.swift */; };
+		300000000000000000000011 /* InteractiveMessageBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000011 /* InteractiveMessageBubble.swift */; };
+		300000000000000000000012 /* AIChatPracticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000012 /* AIChatPracticeView.swift */; };
+		300000000000000000000013 /* WordBankDeckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000013 /* WordBankDeckView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +41,12 @@
 		20000000000000000000000B /* VocabularyCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyCardView.swift; sourceTree = "<group>"; };
 		20000000000000000000000C /* LiveListenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveListenView.swift; sourceTree = "<group>"; };
 		20000000000000000000000D /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = SOURCE_ROOT; };
+		20000000000000000000000E /* ChatModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatModels.swift; sourceTree = "<group>"; };
+		20000000000000000000000F /* GeminiChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiChatService.swift; sourceTree = "<group>"; };
+		200000000000000000000010 /* WordInspectionPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordInspectionPopup.swift; sourceTree = "<group>"; };
+		200000000000000000000011 /* InteractiveMessageBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractiveMessageBubble.swift; sourceTree = "<group>"; };
+		200000000000000000000012 /* AIChatPracticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatPracticeView.swift; sourceTree = "<group>"; };
+		200000000000000000000013 /* WordBankDeckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordBankDeckView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,6 +88,7 @@
 				200000000000000000000004 /* VocabularyCard.swift */,
 				200000000000000000000005 /* ConversationSession.swift */,
 				200000000000000000000006 /* GeminiResponse.swift */,
+				20000000000000000000000E /* ChatModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -87,6 +100,7 @@
 				200000000000000000000008 /* SpeechRecognizerService.swift */,
 				200000000000000000000009 /* GeminiService.swift */,
 				20000000000000000000000A /* SpeechSynthesizerService.swift */,
+				20000000000000000000000F /* GeminiChatService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -96,6 +110,10 @@
 			children = (
 				20000000000000000000000B /* VocabularyCardView.swift */,
 				20000000000000000000000C /* LiveListenView.swift */,
+				200000000000000000000010 /* WordInspectionPopup.swift */,
+				200000000000000000000011 /* InteractiveMessageBubble.swift */,
+				200000000000000000000012 /* AIChatPracticeView.swift */,
+				200000000000000000000013 /* WordBankDeckView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -182,6 +200,12 @@
 				30000000000000000000000A /* SpeechSynthesizerService.swift in Sources */,
 				30000000000000000000000B /* VocabularyCardView.swift in Sources */,
 				30000000000000000000000C /* LiveListenView.swift in Sources */,
+				30000000000000000000000E /* ChatModels.swift in Sources */,
+				30000000000000000000000F /* GeminiChatService.swift in Sources */,
+				300000000000000000000010 /* WordInspectionPopup.swift in Sources */,
+				300000000000000000000011 /* InteractiveMessageBubble.swift in Sources */,
+				300000000000000000000012 /* AIChatPracticeView.swift in Sources */,
+				300000000000000000000013 /* WordBankDeckView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

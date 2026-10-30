@@ -19,7 +19,23 @@ struct DayBySayApp: App {
 
     var body: some Scene {
         WindowGroup {
-            LiveListenView()
+            TabView {
+                LiveListenView()
+                    .tabItem {
+                        Label("Live Listen", systemImage: "mic.fill")
+                    }
+                
+                AIChatPracticeView()
+                    .tabItem {
+                        Label("AI Chat", systemImage: "bubble.left.and.bubble.right.fill")
+                    }
+                
+                WordBankDeckView()
+                    .tabItem {
+                        Label("Word Bank", systemImage: "star.fill")
+                    }
+            }
+            .tint(.blue)
         }
         .modelContainer(sharedModelContainer)
     }
