@@ -70,8 +70,42 @@ public struct InteractiveMessageBubble: View {
     
     private var assistantInteractiveBubble: some View {
         VStack(alignment: .leading, spacing: 10) {
+            // Gentle Grammar Coaching Callout
+            if let feedback = message.grammarFeedback, !feedback.isEmpty {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundColor(.orange)
+                        .font(.system(size: 14))
+                        .padding(.top, 2)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("HELPFUL PHRASING TIP / 表达建议")
+                            .font(.system(size: 10, weight: .heavy))
+                            .foregroundColor(.orange)
+                        Text(feedback)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.primary)
+                    }
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.12))
+                .cornerRadius(10)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                )
+            }
+            
             // Interactive Tokenized Words
             tokenizedFlowView
+            
+            // Native Language Translation if available
+            if let translation = message.nativeTranslation, !translation.isEmpty {
+                Text(translation)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .padding(.top, 2)
+            }
             
             // Audio Listen & Tip Bar
             HStack(spacing: 12) {

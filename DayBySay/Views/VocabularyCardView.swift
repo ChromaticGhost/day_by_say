@@ -1,13 +1,25 @@
 import SwiftUI
+import SwiftData
 
 /// A high-contrast, senior-friendly flashcard component designed for clear readability and one-tap audio.
 public struct VocabularyCardView: View {
     public let item: ExtractedVocabularyItem
     @ObservedObject public var speechSynthesizer: SpeechSynthesizerService
     
+    @Environment(\.modelContext) private var modelContext
+    @Query private var savedCards: [VocabularyCard]
+    @State private var justAdded: Bool = false
+    
     public init(item: ExtractedVocabularyItem, speechSynthesizer: SpeechSynthesizerService) {
         self.item = item
         self.speechSynthesizer = speechSynthesizer
+    }
+    
+    private var isAlreadyInWordBank: Bool {
+        justAdded || savedCards.contains {
+            $0.englishTerm.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ==
+            item.englishTerm.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        }
     }
     
     private var isPlayingThisWord: Bool {
@@ -114,6 +126,26 @@ public struct VocabularyCardView: View {
                 }
                 .padding(.top, 2)
             }
+            
+            // Add to Word Bank Action Button
+            Button {
+                addToWordBank()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: isAlreadyInWordBank ? "checkmark.circle.fill" : "star.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(isAlreadyInWordBank ? "Saved in Word Bank / 已收藏" : "Add to Word Bank / 收藏到生词本")
+                        .font(.system(size: 14, weight: .bold))
+                }
+                .foregroundColor(isAlreadyInWordBank ? .green : .blue)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(isAlreadyInWordBank ? Color.green.opacity(0.12) : Color.blue.opacity(0.1))
+                .cornerRadius(10)
+            }
+            .buttonStyle(.plain)
+            .disabled(isAlreadyInWordBank)
+            .padding(.top, 4)
         }
         .padding(20)
         .background(Color(.systemBackground))
@@ -123,5 +155,33 @@ public struct VocabularyCardView: View {
                 .stroke(Color.primary.opacity(0.08), lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
+    }
+    
+    private func addToWordBank() {
+        guard !isAlreadyInWordBank else { return }
+        
+        let newCard = VocabularyCard(
+            englishTerm: item.englishTerm,
+            phoneticIpa: item.phoneticIpa,
+            partOfSpeech: item.partOfSpeech,
+            targetLanguageCode: "zh-Hans",
+            translatedMeaning: item.translatedMeaning,
+            contextSentence: item.contextSentence,
+            culturalExplanation: item.culturalExplanation
+        )
+        newCard.repetitionCount = 0
+        newCard.intervalDays = 1
+        newCard.easeFactor = 2.5
+        newCard.nextDueAt = Date()
+        
+        modelContext.insert(newCard)
+        try? modelContext.save()
+        
+        withAnimation {
+            justAdded = true
+        }
+        
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
     }
 }

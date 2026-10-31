@@ -1,6 +1,7 @@
 import Foundation
 
-/// Service orchestrating AI conversation roleplay and on-demand lexical word inspection.
+/// Service orchestrating dynamic AI conversation roleplay, real-time grammar feedback,
+/// and on-demand lexical word inspection.
 @MainActor
 public final class GeminiChatService: ObservableObject {
     @Published public var messages: [ChatMessage] = []
@@ -25,7 +26,7 @@ public final class GeminiChatService: ObservableObject {
         self.errorMessage = nil
     }
     
-    /// Sends a user message and fetches the AI's roleplay response.
+    /// Sends a user message and fetches the AI's roleplay response with grammar feedback.
     public func sendUserMessage(
         _ text: String,
         targetLanguage: TargetLanguage = .simplifiedChinese
@@ -41,12 +42,17 @@ public final class GeminiChatService: ObservableObject {
         defer { isSending = false }
         
         do {
-            let reply = try await callGeminiForReply(
+            let result = try await callGeminiForReply(
                 history: messages,
                 scenario: activeScenario,
                 targetLanguage: targetLanguage
             )
-            let assistantMessage = ChatMessage(role: .assistant, content: reply)
+            let assistantMessage = ChatMessage(
+                role: .assistant,
+                content: result.reply,
+                grammarFeedback: result.grammarFeedback,
+                nativeTranslation: result.nativeTranslation
+            )
             messages.append(assistantMessage)
         } catch {
             print("Gemini chat error: \(error.localizedDescription)")
@@ -91,28 +97,42 @@ public final class GeminiChatService: ObservableObject {
     
     // MARK: - Private Gemini API Calls
     
+    private struct GeminiChatResult {
+        let reply: String
+        let grammarFeedback: String?
+        let nativeTranslation: String?
+    }
+    
     private func callGeminiForReply(
         history: [ChatMessage],
         scenario: ChatScenario,
         targetLanguage: TargetLanguage
-    ) async throws -> String {
+    ) async throws -> GeminiChatResult {
         let apiKey = APIConfig.geminiAPIKey
-        let activeModels = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
+        let activeModels = ["gemini-3.6-flash", "gemini-3.5-flash-lite"]
         
         let systemPrompt = """
-        You are DayBySay AI, a kind, patient, and warm American roleplay conversation partner assisting immigrant elders and language learners practice survival English.
+        You are DayBySay AI, an empathetic, supportive, and dynamic conversation practice partner for non-English speaking immigrant elders and newcomers learning practical American survival English.
         
-        Roleplay Scenario: "\(scenario.title)"
-        Your Persona: \(scenario.roleplayPersona)
-        Guidelines:
-        1. Speak in natural, spoken American English suitable for daily community errands.
-        2. Keep your answers brief (1 to 2 clear sentences) so it is easy to read and understand.
-        3. Do not overwhelm the user with long paragraphs.
-        4. When the user responds, react realistically and naturally to their order, request, or question.
+        Current Scenario: "\(scenario.title)"
+        Your Roleplay Persona: \(scenario.roleplayPersona)
+        Target Learner's Native Language: \(targetLanguage.displayName)
+        
+        You must respond in strict JSON matching this exact schema:
+        {
+          "roleplayReply": "Spoken English in-character reply (1 to 3 clear, natural sentences)",
+          "grammarFeedback": "Optional string or null. If user made a grammar, vocabulary, or phrasing error, provide a gentle friendly tip with the natural way to say it in English (e.g. 'Instead of ..., you can say: ...'). If their input was good and natural, set to null.",
+          "nativeTranslation": "Concise translation of roleplayReply in \(targetLanguage.displayName)"
+        }
+        
+        CRITICAL TEACHING RULES:
+        1. DYNAMIC & CONTEXTUAL: NEVER give canned or repetitive answers. React directly and specifically to what the user just said or ordered.
+        2. OFF-TOPIC HANDLING: If the user shifts the topic (e.g. asks about the weather, movies, personal questions, or jokes), do NOT ignore them. React naturally and warmly in character (e.g. answer briefly or laugh) and conversationally tie it back.
+        3. GRAMMAR COACHING: Non-native seniors often make word order or tense errors. When you detect one, provide constructive, positive feedback in grammarFeedback.
+        4. ACCESSIBILITY: Keep roleplayReply concise (1-3 sentences) so the learner is not overwhelmed.
         5. \(scenario.systemInstructions)
         """
         
-        // Format contents history
         var contents: [[String: Any]] = []
         for msg in history {
             contents.append([
@@ -127,8 +147,9 @@ public final class GeminiChatService: ObservableObject {
             ],
             "contents": contents,
             "generationConfig": [
+                "responseMimeType": "application/json",
                 "temperature": 0.7,
-                "maxOutputTokens": 150
+                "maxOutputTokens": 300
             ]
         ]
         
@@ -143,6 +164,7 @@ public final class GeminiChatService: ObservableObject {
             request.httpMethod = "POST"
             request.addValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = jsonData
+            request.timeoutInterval = 12.0
             
             do {
                 let (data, response) = try await session.data(for: request)
@@ -152,8 +174,21 @@ public final class GeminiChatService: ObservableObject {
                        let first = candidates.first,
                        let contentObj = first["content"] as? [String: Any],
                        let parts = contentObj["parts"] as? [[String: Any]],
-                       let text = parts.first?["text"] as? String {
-                        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+                       let jsonString = parts.first?["text"] as? String,
+                       let parsedData = jsonString.data(using: .utf8),
+                       let parsedDict = try? JSONSerialization.jsonObject(with: parsedData) as? [String: Any] {
+                        
+                        let reply = (parsedDict["roleplayReply"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        let grammar = parsedDict["grammarFeedback"] as? String
+                        let translation = parsedDict["nativeTranslation"] as? String
+                        
+                        if !reply.isEmpty {
+                            return GeminiChatResult(
+                                reply: reply,
+                                grammarFeedback: grammar,
+                                nativeTranslation: translation
+                            )
+                        }
                     }
                 }
             } catch {
@@ -161,8 +196,8 @@ public final class GeminiChatService: ObservableObject {
             }
         }
         
-        // Offline / Simulation fallback if API limit or offline
-        return generateOfflineFallbackReply(for: history.last?.content ?? "", scenario: scenario)
+        // Intelligent dynamic local fallback if internet is completely disconnected
+        return generateDynamicLocalFallback(for: history.last?.content ?? "", scenario: scenario)
     }
     
     private func callGeminiForWordInspection(
@@ -199,40 +234,46 @@ public final class GeminiChatService: ObservableObject {
         ]
         
         let jsonData = try JSONSerialization.data(withJSONObject: requestBody)
-        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\(apiKey)") else {
-            throw NSError(domain: "DayBySay", code: 400)
+        
+        for modelName in ["gemini-3.6-flash", "gemini-3.5-flash-lite"] {
+            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(modelName):generateContent?key=\(apiKey)") else {
+                continue
+            }
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = jsonData
+            request.timeoutInterval = 8.0
+            
+            do {
+                let (data, response) = try await session.data(for: request)
+                if let http = response as? HTTPURLResponse, http.statusCode == 200,
+                   let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let candidates = root["candidates"] as? [[String: Any]],
+                   let first = candidates.first,
+                   let contentObj = first["content"] as? [String: Any],
+                   let parts = contentObj["parts"] as? [[String: Any]],
+                   let jsonText = parts.first?["text"] as? String,
+                   let parsedData = jsonText.data(using: .utf8),
+                   let dict = try? JSONSerialization.jsonObject(with: parsedData) as? [String: Any] {
+                    
+                    return WordInspection(
+                        term: term,
+                        phoneticIpa: dict["phoneticIpa"] as? String ?? "/\(term.lowercased())/",
+                        partOfSpeech: dict["partOfSpeech"] as? String ?? "phrase",
+                        definition: dict["definition"] as? String ?? term,
+                        contextSentence: context,
+                        practicalExamples: dict["practicalExamples"] as? [String] ?? ["Please use this word in daily life."],
+                        culturalTip: dict["culturalTip"] as? String ?? "Common American spoken expression."
+                    )
+                }
+            } catch {
+                continue
+            }
         }
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = jsonData
-        
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw NSError(domain: "DayBySay", code: 500)
-        }
-        
-        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let candidates = root["candidates"] as? [[String: Any]],
-              let first = candidates.first,
-              let contentObj = first["content"] as? [String: Any],
-              let parts = contentObj["parts"] as? [[String: Any]],
-              let jsonText = parts.first?["text"] as? String,
-              let parsedData = jsonText.data(using: .utf8),
-              let dict = try? JSONSerialization.jsonObject(with: parsedData) as? [String: Any] else {
-            throw NSError(domain: "DayBySay", code: 502)
-        }
-        
-        return WordInspection(
-            term: term,
-            phoneticIpa: dict["phoneticIpa"] as? String ?? "/\(term.lowercased())/",
-            partOfSpeech: dict["partOfSpeech"] as? String ?? "phrase",
-            definition: dict["definition"] as? String ?? term,
-            contextSentence: context,
-            practicalExamples: dict["practicalExamples"] as? [String] ?? ["Please use this word in daily life."],
-            culturalTip: dict["culturalTip"] as? String ?? "Common American spoken expression."
-        )
+        throw NSError(domain: "DayBySay", code: 500)
     }
     
     // MARK: - Instant Local Dictionary (Instant zero-wait popup)
@@ -353,20 +394,57 @@ public final class GeminiChatService: ObservableObject {
         )
     }
     
-    private func generateOfflineFallbackReply(for input: String, scenario: ChatScenario) -> String {
-        switch scenario.id {
-        case "grocery":
-            return "Sure thing! Do you have our store loyalty rewards card with you today?"
-        case "pharmacy":
-            return "Thank you. Let me look that up in the pharmacy system. It will be ready in just a few minutes."
-        case "transit":
-            return "You got it. Hold onto your transfer ticket, it's good for the next two hours."
-        case "clinic":
-            return "Thank you! Please have a seat in the lobby, and the nurse will call your name shortly."
-        case "cafe":
-            return "Got it! That will be $4.50. You can tap your card on the terminal right there."
-        default:
-            return "That sounds wonderful. Have a very pleasant day ahead!"
+    /// Intelligent dynamic local fallback that responds specifically to user keywords
+    private func generateDynamicLocalFallback(for input: String, scenario: ChatScenario) -> GeminiChatResult {
+        let lower = input.lowercased()
+        
+        // Grammar heuristics
+        var grammarTip: String? = nil
+        if lower.contains("i wants") || lower.contains("he want ") {
+            grammarTip = "Instead of 'I wants', try saying: 'I would like' or 'I want'."
+        } else if lower.contains("me no") {
+            grammarTip = "Instead of 'Me no...', try saying: 'I don't...' (e.g. 'I don't need a bag')."
+        } else if lower.contains("how much it") {
+            grammarTip = "Instead of 'how much it', try saying: 'How much is it?'"
         }
+        
+        // Dynamic contextual reply based on user content
+        if lower.contains("paper") {
+            return GeminiChatResult(
+                reply: "Paper bags it is! Would you like your receipt in the bag or with you?",
+                grammarFeedback: grammarTip,
+                nativeTranslation: "好的，给您用纸袋！您想要收据放在袋子里还是直接拿给您？"
+            )
+        } else if lower.contains("plastic") {
+            return GeminiChatResult(
+                reply: "Sure thing, plastic bags ready! Do you have our rewards card today?",
+                grammarFeedback: grammarTip,
+                nativeTranslation: "没问题，塑料袋准备好了！您今天有会员积分卡吗？"
+            )
+        } else if lower.contains("weather") || lower.contains("rain") {
+            return GeminiChatResult(
+                reply: "Oh yeah, it definitely looks like rain out there! Stay dry on your way home.",
+                grammarFeedback: grammarTip,
+                nativeTranslation: "噢是啊，外面看起来确实要下雨了！回家路上注意别淋湿了。"
+            )
+        } else if lower.contains("movie") || lower.contains("film") {
+            return GeminiChatResult(
+                reply: "Haha, I love talking about movies! That's a great one. Anything else I can ring up for you today?",
+                grammarFeedback: grammarTip,
+                nativeTranslation: "哈哈，我也很喜欢聊电影！那部很棒。今天还有别的需要我结账的吗？"
+            )
+        } else if lower.contains("refill") || lower.contains("copay") {
+            return GeminiChatResult(
+                reply: "Let me check the pharmacy records for your prescription right now. It looks like you have two refills remaining.",
+                grammarFeedback: grammarTip,
+                nativeTranslation: "我现在就为您在药房系统里查询处方记录。看起来您还剩下两次续药额度。"
+            )
+        }
+        
+        return GeminiChatResult(
+            reply: "Got it! \"\(input)\". I've got that noted for you. How else can I help today?",
+            grammarFeedback: grammarTip,
+            nativeTranslation: "明白了！我已经帮您记下了。今天还有什么我可以帮您的吗？"
+        )
     }
 }

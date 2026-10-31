@@ -99,12 +99,23 @@ public struct ChatMessage: Identifiable, Equatable {
     public let id: UUID
     public let role: ChatMessageRole
     public let content: String
+    public let grammarFeedback: String?
+    public let nativeTranslation: String?
     public let timestamp: Date
     
-    public init(id: UUID = UUID(), role: ChatMessageRole, content: String, timestamp: Date = Date()) {
+    public init(
+        id: UUID = UUID(),
+        role: ChatMessageRole,
+        content: String,
+        grammarFeedback: String? = nil,
+        nativeTranslation: String? = nil,
+        timestamp: Date = Date()
+    ) {
         self.id = id
         self.role = role
         self.content = content
+        self.grammarFeedback = grammarFeedback
+        self.nativeTranslation = nativeTranslation
         self.timestamp = timestamp
     }
 }

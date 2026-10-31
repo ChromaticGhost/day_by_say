@@ -45,8 +45,8 @@ public struct LiveListenView: View {
                         // Main Microphone & Audio Capture Box
                         captureCard(scrollProxy: scrollProxy)
                         
-                        // Quick Testing Scenarios (Simulator / Demo Helpers)
-                        quickDemoChips
+                        // Referral banner to separate AI Chat practice space
+                        aiChatReferralCard
                         
                         // Processing Indicator
                         if geminiService.isAnalyzing {
@@ -165,7 +165,7 @@ public struct LiveListenView: View {
             .padding(.top, 10)
             
             // Status Label
-            Text(speechRecognizer.isRecording ? "LISTENING TO CONVERSATION... / 正在聆听" : "TAP TO START LISTENING / 点击开始聆听")
+            Text(speechRecognizer.isRecording ? "RECORDING AMBIENT SPEECH... / 正在录音" : "TAP TO RECORD SPEECH / 点击开始录音")
                 .font(.system(size: 14, weight: .bold))
                 .foregroundColor(speechRecognizer.isRecording ? .red : .secondary)
                 .tracking(0.5)
@@ -182,11 +182,19 @@ public struct LiveListenView: View {
                 }
                 
                 if speechRecognizer.transcript.isEmpty {
-                    Text("Speak English or tap a scenario below to see how DayBySay creates personal flashcards...")
-                        .font(.system(size: 16, weight: .regular))
-                        .foregroundColor(.secondary.opacity(0.8))
-                        .italic()
-                        .padding(.vertical, 4)
+                    if speechRecognizer.isRecording {
+                        Text("Listening to microphone... Speak clearly in English or record conversations around you.")
+                            .font(.system(size: 16, weight: .regular))
+                            .foregroundColor(.secondary)
+                            .italic()
+                            .padding(.vertical, 4)
+                    } else {
+                        Text("Tap the microphone to capture real-world English (at grocery stores, clinics, transit), then tap generate to create study flashcards.")
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundColor(.secondary.opacity(0.8))
+                            .italic()
+                            .padding(.vertical, 4)
+                    }
                 } else {
                     Text(speechRecognizer.transcript)
                         .font(.system(size: 20, weight: .medium, design: .rounded))
@@ -198,25 +206,41 @@ public struct LiveListenView: View {
             .background(Color(.secondarySystemBackground))
             .cornerRadius(16)
             
-            // Action Button when transcript is available
+            // Action Buttons when transcript is available
             if !speechRecognizer.transcript.isEmpty && !speechRecognizer.isRecording {
-                Button {
-                    processTranscript()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 18, weight: .bold))
-                        Text("Create English Deck / 生成学习卡片")
-                            .font(.system(size: 18, weight: .bold))
+                HStack(spacing: 12) {
+                    Button {
+                        speechRecognizer.transcript = ""
+                        extractionResult = nil
+                    } label: {
+                        Text("Clear / 清空")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 16)
+                            .frame(height: 52)
+                            .background(Color(.secondarySystemBackground))
+                            .cornerRadius(14)
                     }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Color.green)
-                    .cornerRadius(16)
-                    .shadow(color: Color.green.opacity(0.3), radius: 6, x: 0, y: 3)
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        processTranscript()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 16, weight: .bold))
+                            Text("Create English Deck / 生成卡片")
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(Color.green)
+                        .cornerRadius(14)
+                        .shadow(color: Color.green.opacity(0.3), radius: 6, x: 0, y: 3)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             
             // Quick Jump to Cards button if already generated
@@ -247,51 +271,35 @@ public struct LiveListenView: View {
         .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 4)
     }
     
-    // MARK: - Quick Demo Scenarios
+    // MARK: - Referral to AI Chat Space
     
-    private var quickDemoChips: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("QUICK DEMO SCENARIOS / 快速体验情境")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(.secondary)
+    private var aiChatReferralCard: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .font(.system(size: 22))
+                .foregroundColor(.blue)
+                .frame(width: 42, height: 42)
+                .background(Color.blue.opacity(0.12))
+                .clipShape(Circle())
             
-            HStack(spacing: 10) {
-                demoButton(
-                    title: "🛒 Supermarket",
-                    text: "Hi! Do you have a loyalty card or phone number? Paper or plastic bags? Your total is twenty-three dollars, would you like your receipt?"
-                )
-                
-                demoButton(
-                    title: "💊 Pharmacy",
-                    text: "Hello, I am here to pick up my prescription. What is my copay for this medication, and how many refills do I have?"
-                )
-                
-                demoButton(
-                    title: "👋 Neighbor",
-                    text: "Good morning! How is it going today? Nice weather we're having. Have a good one!"
-                )
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Looking for conversation practice with prompts?")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.primary)
+                Text("Switch to the **AI Chat** tab to practice scenarios & roleplay!")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
             }
+            
+            Spacer()
         }
-    }
-    
-    private func demoButton(title: String, text: String) -> some View {
-        Button {
-            speechRecognizer.loadSampleScenario(text)
-            processTranscript()
-        } label: {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color(.systemBackground))
-                .foregroundColor(.primary)
-                .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
+        .padding(14)
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+        )
     }
     
     // MARK: - Analyzing View
